@@ -1,0 +1,71 @@
+---
+title: "Practical 3"
+output: html_notebook
+---
+
+Read in the `Practical3.csv` data file and perform a One way ANOVA to determine if Condition membership influences Wisdom
+
+Conditions: 
+
+- Immersed Self   SI
+- Immersed Other  OI
+- Distant Self    SO
+- Distant Other   OD
+
+
+##1 Read in data
+```{r}
+
+```
+
+#### View the data
+
+##2 Summarise Data
+```{r}
+
+```
+
+##3 Plot Data (Boxplot)
+```{r}
+
+```
+
+##4 Perform One Way ANOVA model fit
+```{r}
+
+```
+
+
+##5 Summarise Model
+```{r}
+
+```
+
+##6 Plot Diagnostic plots
+```{r}
+
+```
+
+##7 Plot residuals and test normality
+
+#### Create Residuals
+```{r}
+
+```
+
+#### Plot Residuals
+```{r}
+
+```
+
+#### Test Residual Normality
+```{r}
+
+```
+
+
+##8 Perform post-hoc comparisons
+```{r}
+
+```
+

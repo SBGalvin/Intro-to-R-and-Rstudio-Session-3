@@ -1,0 +1,335 @@
+---
+title: "Introduction to R and Rstudio"
+subtitle: "Session3: One way ANOVA"
+author: "SB Galvin"
+
+output: html_notebook
+---
+
+##0 Data Preparation
+
+First set up some options
+
+```{r}
+options(scipen=999)
+set.seed(42) # This should make the data reproducable
+```
+
+Now generate some simulated data for illustrative use
+```{r}
+A  <-  rnorm(100, 100, 15)
+B  <-  rnorm(100, 75, 15)
+C  <-  rnorm(100, 115, 14)
+D  <-  rnorm(100, 121, 18)
+E  <-  rnorm(100, 112, 15)
+
+df.wide  <-  data.frame(A, B, C, D, E)
+df.wide
+```
+Now we will use the `reshape2` package to transform the wide data frame into a long data frame
+```{r}
+if(!require(reshape2)) {
+	install.packages("reshape2")       # Function for installing a package if it's not already installed
+}
+```
+
+The `melt()` function transforms data from wide to long. 
+Important to note that for wide data with multiple variables per person you will need an argument for an `id` variable.
+In this case we have two variables, group and response, and the row numbers in df.wide are meaningless
+```{r}
+df.long  <- melt(df.wide, 
+                 variable.name = "Group", 
+                 value.name = "Response")
+df.long
+```
+
+##1 Summarising and Plotting Raw Data
+
+### Summaries
+```{r}
+if(!require(summarytools)) {
+	install.packages("summarytools")    # Function for installing a package if it's not already installed
+}
+
+```
+
+Using the `desc()` function
+```{r}
+by(df.long,                                      # Tell R where the data is
+   df.long$Group,                            # Tell R what/where the category is
+   descr)
+```
+
+
+Visualisation is a useful tool to present qualitative features of data.
+
+### Histogram of Response variable
+```{r}
+hist(df.long$Response,
+     main = "Histogram: Response Variable",            # Main title
+     xlab="Response Variable",                         # X label
+     ylab = "Frequency")                               # Y label
+abline(v= mean(df.long$Response),                      # Vertical Line
+       col='tomato',                                
+       lty='dashed',
+       lwd=3)
+```
+
+We can also plot the distribtuion against a hypothetical normal curve by generating data (xfit) and normalised values (yfit), and then plotting using the `lines()` function
+```{r}
+#pdf("S3responsehist.pdf")
+hist(df.long$Response,
+     main = "Density: Response Variable",              # Main title
+     xlab="Response Variable",                         # X label
+     ylab = "Density",                                 # Y label
+     freq=FALSE)                                       # Turn off Frequency labels for Y axis
+abline(v= mean(df.long$Response),                      # Vertical Line
+       col='tomato',                                
+       lty='dashed',
+       lwd=3)
+# Add normal curve
+xfit<-seq(min(df.long$Response),max(df.long$Response),length=40)
+yfit<-dnorm(xfit,mean=mean(df.long$Response),sd=sd(df.long$Response))
+lines(xfit, yfit, col="tomato", lwd=3, lty=8)
+#dev.off()
+```
+
+### Boxplot
+Boxplot of data. In this boxplot I have coloured the edges of the boxes, rather than change the fill colour. This is done using the `border` argument. If I wanted to colour the boxes, I could change the name of the argument to `col`
+```{r}
+#pdf("S3box.pdf")
+# boxplot
+boxplot(Response ~ Group,                                # Formula
+        data = df.long,                                  # Data
+        border = c("chocolate2",                         # Group A
+                "aquamarine3",                           # Group B
+                "darkmagenta",                           # Group C
+                "cornflowerblue",                        # Group D
+                "hotpink1"),                             # Group E  
+        main="Boxplot of Response by Groups",            # Plot title
+        boxlwd=3,                                        # Boxplot line weight
+        xlab="Groups",                                   # X label
+        ylab = "Response")                               # Y label
+# Add a line for the grand mean
+abline(h=mean(df.long$Response),                         # Horozontal intercept
+       col="tomato",                                     # line colour
+       lwd=2,                                            # Line weight
+       lty="dashed")                                     # Linetype
+#dev.off()
+```
+
+
+
+### GGplot 2 Boxplot with marginal density plot
+Load ggplot2
+```{r}
+if(!require(ggplot2)|!require(ggExtra)) {
+	install.packages(c("ggplot2", "ggExtra"))    # Function for installing a package if it's not already installed
+}
+```
+
+
+Now draw in your data
+```{r}
+ggplot(df.long)+
+  geom_boxplot(aes(x=Group, y= Response),
+               colour=c("chocolate2",                            # Group A
+                        "aquamarine3",                           # Group B
+                        "darkmagenta",                           # Group C
+                        "cornflowerblue",                        # Group D
+                        "hotpink1"),                             # Group E
+               size = 1.5)+                            
+  geom_hline(yintercept = mean(df.long$Response), 
+             colour="tomato", 
+             linetype='dashed',
+             size = 2) +
+  theme_classic()                                                # Plain ggplot2 theme
+```
+
+
+```{r}
+##Box plot backing
+ggplot(df.long,aes(Group,Response, fill=Group))+
+  geom_violin()+
+  scale_fill_manual(values = c("chocolate2",                            # Group A
+                               "aquamarine3",                           # Group B
+                               "darkmagenta",                           # Group C
+                               "cornflowerblue",                        # Group D
+                               "hotpink1")) +                           # Group E
+  stat_summary(fun.y=median, geom="point", size=3, color="white")+
+  geom_boxplot(width=.2, fill='white', colour="grey10")+
+    geom_hline(yintercept = mean(df.long$Response), 
+             colour="grey35", 
+             linetype='dashed',
+             size = 1.5)+
+  theme_classic()+
+  theme(legend.position="none") ->> pVi2
+pVi2
+```
+
+###Normal distribution of Response data
+```{r}
+ ggplot()+
+  geom_line(aes(x=xfit, y = yfit),                   # Input x and y data
+            colour="grey35",                         # line colour
+            size = 1.5)+
+  geom_vline(xintercept = mean(df.long$Response),    # x axis intercept
+             size = 1.5,
+             colour= "grey35",                       # Colour
+             linetype = "dashed")+
+  coord_flip()+                                      # Rotate the plot
+  theme_void() ->> pNO                               # Add a gg theme ->> save as plot object
+
+pNO
+
+```
+
+###Marginal Plots
+We can plot the response data distribution against the violin plot.
+```{r}
+library(cowplot)
+#pdf("ViolinPlot2.pdf")
+plot_grid(pVi2, pNO, ncol = 2, rel_widths = c(3.3, .7), align = "h")
+#dev.off()
+```
+
+
+##2 Assumptions
+
+###Homogeneity of variance
+Base R has a number of tests for Homogeneity of variance
+
+The Bartlett test
+```{r}
+# Bartlett Test of Homogeneity of Variances
+bartlett.test(Response ~ Group, 
+              data = df.long)
+```
+
+The Figner-Lillen test can be used for non-parametric data
+```{r}
+# Figner-Killeen Test of Homogeneity of Variances
+fligner.test(Response ~ Group, 
+              data = df.long)
+```
+
+
+###Normality
+We can visualise data using a Quantile-Quantile plot
+```{r}
+qqnorm(df.long$Response)
+qqline(df.long$Response)
+```
+
+
+##3 ANOVA Model
+
+ANOVA residuals don't have to be anywhere close to normal in order to fit the model. However, near-normality of the residuals is essential for p-values computed from the F-distribution to be meaningful.
+
+### ANOVA
+```{r}
+model.av  <-  aov(Response ~ Group, data = df.long)
+```
+
+### Summary
+```{r}
+summary(model.av)
+```
+
+#### Post-hoc tests
+Tukey HSD
+```{r}
+TukeyHSD(model.av)
+```
+
+#### Pairwise t-tests with Bonferonni corrections
+Must use the `$` subset method
+```{r}
+pairwise.t.test(df.long$Response, df.long$Group, 
+                p.adj="bonferroni", paired=FALSE)
+```
+
+We can also compute 95% confidence intervals
+```{r}
+confint(model.av)
+```
+
+#### Diagnostic Plots
+R produces diagnostic plots with ease
+```{r}
+plot(model.av)
+```
+
+### Effect Size
+Eta-squared, Partial Eta and Omega-squared using the `sj-stats` package
+```{r}
+if(!require(sjstats)) {
+	install.packages("sjstats")    # Function for installing a package if it's not already installed
+}
+```
+#### Eta - Squared
+```{r}
+library(sjstats)
+eta_sq(model.av)
+```
+#### Partial Eta-Squared
+One factor with 5 levels
+```{r}
+eta_sq(model.av,
+       partial = TRUE)
+```
+#### Omega-Squared
+```{r}
+omega_sq(model.av)
+```
+
+
+### Residuals
+A major assumption of the ANOVA model is that the model residuals are not systematic and are instead normally (randomly) distributed, allowing us to specify a cause for a response such that **GROUP MEMBERSHIP --> RESPONSE**
+
+Residuals
+```{r}
+model.resid  <-  residuals(model.av)
+```
+
+We can now check to see if our model residuals are normally distributed
+```{r}
+shapiro.test(model.resid)
+```
+
+We can plot the model residuals using the hist funtion
+```{r}
+#pdf("S3ModelResid.pdf")
+hist(model.resid,
+     col="grey88",
+     main = "Histogram: Model Residuals and Normal Density Curve",
+     freq = FALSE)
+abline(v=mean(model.resid), col="blue", lty=8, lwd=3)
+xfit<-seq(min(model.resid),max(model.resid),length=40)
+yfit<-dnorm(xfit,mean=mean(model.resid),sd=sd(model.resid))
+lines(xfit, yfit, col="blue", lwd=3, lty=8)
+#dev.off()
+```
+
+GGplot2 scatterplot  to explain the residuals
+```{r}
+df.long2  <- df.long
+df.long2$Resid  <-  df.long2$Response - mean(df.long2$Response)
+
+ggplot(df.long2, aes(fill=Group))+
+  geom_jitter(aes(Group, Response), shape = 21)+
+  geom_segment(data=df.long2, aes(x=Group, xend=Group, y=Response, yend= Response+Resid))+
+  theme_classic() -> jitplt
+
+#pdf("S3jit.pdf")
+jitplt
+#dev.off()
+```
+
+
+### ANOVA table
+The `anova()` function produces an ANOVA table you can use for a report (this can be written as an csv file)
+```{r}
+anova(model.av)
+```
+
