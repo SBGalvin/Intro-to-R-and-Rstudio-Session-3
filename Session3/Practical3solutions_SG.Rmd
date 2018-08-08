@@ -1,0 +1,89 @@
+---
+title: "Practical 3 Solutions"
+subtitle: "Session 3: One way ANOVA"
+author: "SB Galvin"
+output:
+  html_document:
+    df_print: paged
+---
+
+Read in the `Practical3.csv` data file and perform a One way ANOVA to determine if Condition membership influences Wisdom
+
+Conditions: 
+
+- Immersed Self   SI
+- Immersed Other  OI
+- Distant Self    SO
+- Distant Other   OD
+
+
+##1 Read in data
+```{r}
+data  <-  read.csv("Practical3.csv")
+```
+
+#### View the data
+```{r}
+dfp3 <- data.frame(data$CONDITION, data$WISDOM)
+names(dfp3)  <- c("CONDITION", "WISDOM")
+dfp3
+```
+
+##2 Summarise Data
+```{r}
+library(summarytools)
+by(dfp3,                                      # Tell R where the data is
+   dfp3$CONDITION,                            # Tell R what/where the category is
+   descr)
+```
+
+##3 Plot Data (Boxplot)
+```{r}
+boxplot(WISDOM ~ CONDITION, data = dfp3)
+```
+
+Histogram
+```{r}
+hist(dfp3$WISDOM)
+```
+
+
+##4 Perform One Way ANOVA model fit
+```{r}
+fit.av  <- aov(WISDOM ~ CONDITION, data = dfp3)
+```
+
+
+##5 Summarise Model
+```{r}
+summary(fit.av)
+```
+
+##6 Plot Diagnostic plots
+```{r}
+plot(fit.av)
+```
+
+##7 Plot residuals and test normality
+
+#### Create Residuals
+```{r}
+fit.res  <-  residuals(fit.av)
+```
+
+#### Plot Residuals
+```{r}
+hist(fit.res)
+```
+
+#### Test Residual Normality
+```{r}
+shapiro.test(fit.res)
+```
+
+
+##8 Perform post-hoc comparisons
+```{r}
+TukeyHSD(fit.av)
+```
+
