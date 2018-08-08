@@ -1,2 +1,2 @@
 # Intro-to-R-and-Rstudio-Session-3
-Session 3 materials
+Introduction to R and Rstudio for Psychologists Session 3 materials (3/6)
